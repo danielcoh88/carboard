@@ -12,6 +12,10 @@ export default function PhotoManager({ photos, profilePhotoId, onChange, readOnl
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
+  const [urlLoading, setUrlLoading] = useState(false);
+  const [urlError, setUrlError] = useState('');
 
   const effectiveProfileId = profilePhotoId || (photos.length > 0 ? photos[0].id : '');
 
@@ -64,6 +68,40 @@ export default function PhotoManager({ photos, profilePhotoId, onChange, readOnl
     handleFiles(e.dataTransfer.files);
   }
 
+  async function handleAddFromUrl() {
+    const trimmed = imageUrl.trim();
+    if (!trimmed) return;
+    setUrlLoading(true);
+    setUrlError('');
+    try {
+      const res = await fetch('/api/download-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: trimmed }),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'שגיאה בהורדת התמונה');
+      }
+      const { data, contentType } = await res.json();
+      const photo: Photo = {
+        id: generateId(),
+        data: `data:${contentType};base64,${data}`,
+        name: trimmed.split('/').pop()?.split('?')[0] || 'image',
+        addedAt: new Date().toISOString(),
+      };
+      const updated = [...photos, photo];
+      const newProfileId = effectiveProfileId || photo.id;
+      onChange(updated, newProfileId);
+      setImageUrl('');
+      setShowUrlInput(false);
+    } catch (err: any) {
+      setUrlError(err.message || 'לא ניתן להוריד את התמונה');
+    } finally {
+      setUrlLoading(false);
+    }
+  }
+
   const viewingPhoto = selectedPhoto ? photos.find(p => p.id === selectedPhoto) : null;
 
   return (
@@ -86,6 +124,46 @@ export default function PhotoManager({ photos, profilePhotoId, onChange, readOnl
             onChange={e => handleFiles(e.target.files)}
             style={{ display: 'none' }}
           />
+        </div>
+      )}
+
+      {!readOnly && (
+        <div className="photo-url-section">
+          {!showUrlInput ? (
+            <button
+              className="btn btn-text btn-sm"
+              onClick={() => setShowUrlInput(true)}
+            >
+              🔗 הוסף תמונה מלינק
+            </button>
+          ) : (
+            <div className="photo-url-input-row">
+              <input
+                type="url"
+                value={imageUrl}
+                onChange={e => { setImageUrl(e.target.value); setUrlError(''); }}
+                placeholder="הדבק לינק לתמונה..."
+                dir="ltr"
+                className="photo-url-input"
+                onKeyDown={e => { if (e.key === 'Enter') handleAddFromUrl(); }}
+                autoFocus
+              />
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleAddFromUrl}
+                disabled={urlLoading || !imageUrl.trim()}
+              >
+                {urlLoading ? '⏳' : 'הוסף'}
+              </button>
+              <button
+                className="btn btn-text btn-sm"
+                onClick={() => { setShowUrlInput(false); setImageUrl(''); setUrlError(''); }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
+          {urlError && <div className="photo-url-error">{urlError}</div>}
         </div>
       )}
 

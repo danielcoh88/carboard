@@ -967,6 +967,36 @@ button {
   background: #fee2e2;
 }
 
+/* Photo URL input */
+.photo-url-section {
+  margin-bottom: 12px;
+}
+
+.photo-url-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.photo-url-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.photo-url-input:focus {
+  border-color: var(--border-focus);
+}
+
+.photo-url-error {
+  color: var(--danger);
+  font-size: 0.8125rem;
+  margin-top: 6px;
+}
+
 /* Lightbox */
 .photo-lightbox {
   position: fixed;
